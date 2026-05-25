@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#020617" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Budget" />
+    <title>Budget</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              bg:        '#020617',
+              card:      '#020617',
+              cardSoft:  '#0f172a',
+              accent:    '#d946ef',
+              accentSoft:'rgba(217,70,239,0.12)',
+              danger:    '#ef4444',
+            },
+          }
+        }
+      }
+    </script>
+
+    <style>
+      * { box-sizing: border-box; }
+      [hidden] { display: none !important; }
+      body { -webkit-font-smoothing: antialiased; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      #nav {
+        bottom: 0 !important;
+        padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+      }
+      #app {
+        padding-bottom: max(6.5rem, calc(5.5rem + env(safe-area-inset-bottom)));
+        padding-top: max(1rem, env(safe-area-inset-top));
+        padding-left:  max(1rem, env(safe-area-inset-left));
+        padding-right: max(1rem, env(safe-area-inset-right));
+      }
+    </style>
+
+    <script type="importmap">
+    {
+      "imports": {
+        "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2"
+      }
+    }
+    </script>
+  </head>
+
+  <body class="min-h-screen bg-bg text-slate-100 flex flex-col items-center">
+
+    <!-- AUTH -->
+    <section id="auth" class="fixed inset-0 z-50 flex flex-col items-center justify-center px-4 bg-bg">
+      <div class="w-full max-w-md bg-slate-950/80 border border-slate-800/80 rounded-3xl shadow-2xl shadow-black/70 px-6 pt-6 pb-5 backdrop-blur">
+        <div class="flex items-center gap-3 mb-5">
+          <div class="h-10 w-10 rounded-2xl bg-fuchsia-500/10 border border-fuchsia-400/40 flex items-center justify-center text-fuchsia-400">
+            <span class="text-xl">€</span>
+          </div>
+          <div>
+            <h1 class="text-xl font-semibold tracking-tight">Budget</h1>
+            <p id="auth-sub" class="text-xs text-slate-400">Connecte-toi pour accéder à tes comptes.</p>
+          </div>
+        </div>
+
+        <div class="space-y-2 mb-3">
+          <input id="email" type="email" autocomplete="email" placeholder="Email"
+                 class="w-full rounded-xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/70 focus:border-fuchsia-400/70 transition" />
+          <input id="password" type="password" autocomplete="current-password" placeholder="Mot de passe"
+                 class="w-full rounded-xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/70 focus:border-fuchsia-400/70 transition" />
+        </div>
+
+        <button id="auth-go"
+                class="mt-1 inline-flex w-full items-center justify-center gap-2 rounded-full bg-fuchsia-500 px-4 py-2.5 text-sm font-medium text-slate-950 shadow-[0_12px_40px_rgba(16,185,129,0.5)] hover:bg-fuchsia-400 active:scale-[0.97] transition">
+          Se connecter
+        </button>
+
+        <p id="auth-err" class="min-h-[18px] mt-2 text-[11px] text-danger"></p>
+
+        <button id="auth-toggle" type="button" class="mt-1 w-full text-[11px] text-slate-400 hover:text-slate-200 transition">
+          Pas de compte ? Créer un compte
+        </button>
+      </div>
+
+      <p class="mt-4 text-[11px] text-slate-500 text-center">PWA disponible : installe l'app depuis ton navigateur.</p>
+    </section>
+
+    <!-- APP -->
+    <main id="app" class="w-full max-w-md px-4 pb-24 pt-4"></main>
+
+    <!-- NAV -->
+    <nav id="nav" class="fixed bottom-3 left-0 right-0 flex justify-center pointer-events-none opacity-0 transition-opacity duration-200">
+      <div class="w-full max-w-md mx-4 rounded-full border border-slate-800 bg-slate-950/90 shadow-[0_18px_55px_rgba(0,0,0,0.85)] backdrop-blur flex items-center justify-around py-2 px-1 text-[11px]">
+        <button data-tab="mois" class="flex flex-col items-center gap-0.5 px-3 py-1 text-slate-400">
+          <span class="text-[18px]">◉</span>
+          <span>Mois</span>
+        </button>
+        <button data-tab="recurrents" class="flex flex-col items-center gap-0.5 px-3 py-1 text-slate-400">
+          <span class="text-[18px]">↻</span>
+          <span>Récurrents</span>
+        </button>
+        <button data-tab="categories" class="flex flex-col items-center gap-0.5 px-3 py-1 text-slate-400">
+          <span class="text-[18px]">▦</span>
+          <span>Catégories</span>
+        </button>
+        <button data-tab="revenus" class="flex flex-col items-center gap-0.5 px-3 py-1 text-slate-400">
+          <span class="text-[18px]">↟</span>
+          <span>Revenus</span>
+        </button>
+        <button id="logout" class="flex flex-col items-center gap-0.5 px-3 py-1 text-slate-500" title="Déconnexion">
+          <span class="text-[18px]">⎋</span>
+          <span>Quitter</span>
+        </button>
+      </div>
+    </nav>
+
+    <div id="modal-root"></div>
+
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>
