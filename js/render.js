@@ -3,12 +3,19 @@ import { state } from './state.js';
 import { $, esc, fmt, fmt0, monthLabel, showLoading, errMsg, showToast, shiftMonth, SEED_RECS, monthKey } from './utils.js';
 import { k, income, recsForMonth, recTotal, depTotal, reste } from './calculations.js';
 import { loadMonth, reloadRecs, reloadCats } from './data.js';
-import { depModal, recModal, catModal, foyerModal } from './modals.js';
+import { depModal, recModal, catModal, foyerModal, confirmModal, openQuickAdd } from './modals.js';
 import { copierPromptIA } from './ai.js';
+
+let _donutChart = null;
+let _trendChart = null;
 
 // ── Dispatcher principal ──────────────────────────────────────
 
 export function render() {
+  if (_donutChart) { _donutChart.destroy(); _donutChart = null; }
+  if (_trendChart) { _trendChart.destroy(); _trendChart = null; }
+  $("fab-root").innerHTML = "";
+
   const nav = $("nav");
   nav.querySelectorAll("[data-tab]").forEach(b => {
     const on = b.dataset.tab === state.tab;
@@ -62,7 +69,7 @@ function depList() {
   return state.depenses.map(d => {
     const c = state.categories.find(x => x.id === d.category_id);
     return `<div class="flex items-center gap-2 rounded-2xl border border-slate-800 bg-slate-950/60 px-3 py-2 text-[12px]" data-id="${d.id}">
-      <span class="h-2 w-2 rounded-full" style="background:${c ? c.color : "#64748b"}"></span>
+      <span class="h-2 w-2 rounded-full flex-shrink-0" style="background:${c ? c.color : "#64748b"}"></span>
       <div class="flex-1 min-w-0">
         <div class="truncate">${esc(d.label)}</div>
         <div class="text-[11px] text-slate-500">${c ? esc(c.name) : "Sans catégorie"} · ${d.spent_on?.slice(8, 10)}/${d.spent_on?.slice(5, 7)}</div>
@@ -79,9 +86,10 @@ function wireDepList() {
     const row = e.target.closest("[data-id]"); if (!row) return;
     const d = state.depenses.find(x => x.id === row.dataset.id);
     if (e.target.classList.contains("act-del")) {
-      if (!confirm(`Supprimer « ${d.label} » (${fmt.format(d.amount)}) ?`)) return;
-      try { await ctx.sb.from("depenses").delete().eq("id", d.id); await loadMonth(); render(); }
-      catch { showToast(errMsg()); }
+      confirmModal(`Supprimer «&nbsp;${esc(d.label)}&nbsp;» (${fmt.format(d.amount)}) ?`, async () => {
+        try { await ctx.sb.from("depenses").delete().eq("id", d.id); await loadMonth(); render(); }
+        catch { showToast(errMsg()); }
+      });
     } else if (e.target.classList.contains("act-edit")) {
       depModal(d, async () => { await loadMonth(); render(); });
     }
@@ -93,35 +101,128 @@ function renderMois() {
   const engaged = inc > 0 ? Math.min(100, Math.round((rec + dep) / inc * 100)) : 0;
   const recPct  = inc > 0 ? Math.round(rec / inc * 100) : 0;
 
-  const now        = new Date();
-  const isCurrent  = now.getFullYear() === state.cur.getFullYear() && now.getMonth() === state.cur.getMonth();
+  const now         = new Date();
+  const isCurrent   = now.getFullYear() === state.cur.getFullYear() && now.getMonth() === state.cur.getMonth();
   const daysInMonth = new Date(state.cur.getFullYear(), state.cur.getMonth() + 1, 0).getDate();
-  const daysLeft   = isCurrent ? Math.max(1, daysInMonth - now.getDate() + 1) : daysInMonth;
-  const perDay     = rst / daysLeft;
+  const daysLeft    = isCurrent ? Math.max(1, daysInMonth - now.getDate() + 1) : daysInMonth;
+  const perDay      = rst / daysLeft;
 
+  // Prévision fin de mois (D)
+  const daysElapsed = isCurrent ? now.getDate() : daysInMonth;
+  const projDep     = dep > 0 ? (dep / daysElapsed) * daysInMonth : 0;
+  const projReste   = inc - rec - projDep;
+
+  // Alertes (G)
+  const alertNeg     = rst < 0;
+  const engagedColor = engaged >= 90 ? "#ef4444" : engaged >= 70 ? "#f97316" : "#a855f7";
+
+  // Prélèvements à venir dans 7 jours (F)
+  const today    = now.getDate();
+  const upcoming = isCurrent
+    ? recsForMonth().filter(r => r.day && r.day >= today && r.day <= today + 7).sort((a, b) => a.day - b.day)
+    : [];
+
+  // Répartition par catégorie (C1/C2)
   const byCat = {};
-  state.depenses.forEach(d => { const c = d.category_id || "∅"; byCat[c] = (byCat[c] || 0) + Number(d.amount); });
-  const top = Object.entries(byCat).sort((a, b) => b[1] - a[1]).slice(0, 3)
-    .map(([cid, amt]) => { const c = state.categories.find(x => x.id === cid); return { name: c ? c.name : "Sans catégorie", color: c ? c.color : "#64748b", amt }; });
-  const topHtml = top.length
-    ? '<div class="mt-3 space-y-1.5">' +
-      top.map(t =>
-        '<div class="flex items-center justify-between text-[11px]">' +
-          '<div class="flex items-center gap-2">' +
-            `<span class="h-2 w-2 rounded-full" style="background:${t.color}"></span>` +
-            `<span>${esc(t.name)}</span>` +
-          '</div>' +
-          `<span class="font-medium">${fmt.format(t.amt)}</span>` +
-        '</div>'
-      ).join("") +
-      '</div>'
+  state.depenses.forEach(d => {
+    const cid = d.category_id || "∅";
+    byCat[cid] = (byCat[cid] || 0) + Number(d.amount);
+  });
+  const catEntries = Object.entries(byCat)
+    .sort((a, b) => b[1] - a[1])
+    .map(([cid, amt]) => {
+      const c = state.categories.find(x => x.id === cid);
+      return { id: cid, name: c ? c.name : "Sans catégorie", color: c ? c.color : "#64748b", amt, budget: c ? Number(c.budget) || null : null };
+    });
+
+  const maxCatAmt = catEntries.length ? catEntries[0].amt : 1;
+
+  // HTML pour les barres catégories
+  const catBarsHtml = catEntries.length
+    ? catEntries.map(e => {
+        const pct      = e.budget ? Math.min(100, Math.round(e.amt / e.budget * 100)) : Math.round(e.amt / maxCatAmt * 100);
+        const barColor = e.budget ? (pct >= 90 ? "#ef4444" : pct >= 70 ? "#f97316" : "#22c55e") : e.color;
+        return `<div class="space-y-1">
+          <div class="flex items-center justify-between text-[11px]">
+            <div class="flex items-center gap-1.5">
+              <span class="h-2 w-2 rounded-full flex-shrink-0" style="background:${e.color}"></span>
+              <span class="text-slate-300">${esc(e.name)}</span>
+            </div>
+            <div class="flex items-center gap-1 text-[11px]">
+              <span class="font-medium">${fmt0.format(e.amt)}</span>
+              ${e.budget ? `<span class="text-slate-600">/ ${fmt0.format(e.budget)}</span>` : ""}
+            </div>
+          </div>
+          <div class="h-1.5 w-full rounded-full bg-slate-800 overflow-hidden">
+            <div class="h-full rounded-full transition-all duration-500" style="width:${pct}%;background:${barColor}"></div>
+          </div>
+        </div>`;
+      }).join("")
+    : `<p class="text-[11px] text-slate-500 text-center py-3">Aucune dépense catégorisée ce mois.</p>`;
+
+  // HTML prélèvements à venir
+  const upcomingHtml = upcoming.length
+    ? `<div class="rounded-2xl border border-amber-500/30 bg-amber-500/5 px-3 py-3">
+        <p class="text-[10px] uppercase tracking-[0.16em] text-amber-400 mb-2">Prélèvements · 7 jours</p>
+        <div class="space-y-1.5">
+          ${upcoming.map(r => {
+            const isToday    = r.day === today;
+            const isTomorrow = r.day === today + 1;
+            const dayDate    = new Date(state.cur.getFullYear(), state.cur.getMonth(), r.day);
+            const dayFmt     = dayDate.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+            const when       = isToday ? "aujourd'hui" : isTomorrow ? "demain" : `le ${dayFmt}`;
+            return `<div class="flex items-center justify-between text-[11px]">
+              <div class="flex items-center gap-1.5">
+                <span class="text-amber-500 text-[10px]">↓</span>
+                <span class="text-slate-300">${esc(r.label)}</span>
+                <span class="text-slate-500">${when}</span>
+              </div>
+              <span class="font-medium text-amber-300">-${fmt.format(r.amount)}</span>
+            </div>`;
+          }).join("")}
+        </div>
+      </div>`
+    : "";
+
+  // Donut: montrer uniquement si des dépenses catégorisées existent
+  const hasDepCats = catEntries.some(e => e.id !== "∅");
+  const donutHtml = hasDepCats
+    ? `<div class="flex items-center gap-4">
+        <div class="relative h-28 w-28 flex-shrink-0">
+          <canvas id="cat-donut"></canvas>
+        </div>
+        <div class="flex-1 min-w-0 space-y-1">
+          ${catEntries.slice(0, 5).map(e => {
+            const pct = dep > 0 ? Math.round(e.amt / dep * 100) : 0;
+            return `<div class="flex items-center justify-between text-[11px]">
+              <div class="flex items-center gap-1.5 min-w-0">
+                <span class="h-2 w-2 rounded-full flex-shrink-0" style="background:${e.color}"></span>
+                <span class="truncate text-slate-400">${esc(e.name)}</span>
+              </div>
+              <span class="text-slate-300 font-medium ml-2">${pct}%</span>
+            </div>`;
+          }).join("")}
+        </div>
+      </div>`
+    : "";
+
+  // Tendance 3 mois (C4) — afficher si au moins 1 mois précédent a des données
+  const hasTrend = state.trend.some(t => Object.keys(t.byCat).length > 0) || catEntries.length > 0;
+  const trendHtml = hasTrend
+    ? `<div class="rounded-2xl border border-slate-800 bg-slate-950/60 px-3 py-3">
+        <p class="text-[10px] uppercase tracking-[0.16em] text-slate-500 mb-3">Évolution dépenses · 4 mois</p>
+        <div style="height:110px"><canvas id="trend-chart"></canvas></div>
+      </div>`
     : "";
 
   $("app").innerHTML = header(`
     <section class="space-y-3">
+
+      <!-- Carte principale -->
       <div class="rounded-3xl bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800/80 px-4 py-4 shadow-xl">
         <p class="text-[11px] uppercase tracking-[0.18em] text-slate-400">Reste à dépenser</p>
         <p class="mt-1 text-[30px] font-semibold leading-none tracking-tight ${rst < 0 ? "text-rose-400" : "text-fuchsia-400"}">${fmt.format(rst)}</p>
+        ${alertNeg ? `<div class="mt-2 rounded-xl bg-rose-500/10 border border-rose-500/30 px-3 py-1.5 text-[11px] text-rose-400 flex items-center gap-1.5"><span>⚠</span> Solde dépassé ce mois-ci</div>` : ""}
         <div class="mt-3 grid grid-cols-3 gap-2 text-[11px] text-slate-400">
           <div>
             <p class="text-[10px] uppercase tracking-[0.16em] text-slate-500">Revenus</p>
@@ -136,32 +237,55 @@ function renderMois() {
             <p class="font-medium text-slate-100">-${fmt.format(dep)}</p>
           </div>
         </div>
+        <div class="mt-2 pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px]">
+          <span class="text-slate-500">Récurrents</span>
+          <span class="text-slate-400">${recPct}% des revenus</span>
+        </div>
       </div>
 
+      <!-- Engagé + Reste/jour -->
       <div class="grid grid-cols-2 gap-3">
         <div class="rounded-2xl border border-slate-800 bg-slate-950/60 px-3 py-3">
           <p class="text-[10px] uppercase tracking-[0.16em] text-slate-500">Engagé</p>
-          <p class="mt-1 text-xl font-semibold">${engaged}%</p>
+          <p class="mt-1 text-xl font-semibold ${engaged >= 90 ? "text-rose-400" : engaged >= 70 ? "text-amber-400" : ""}">${engaged}%</p>
           <div class="mt-2 h-1.5 w-full rounded-full bg-slate-800 overflow-hidden">
-            <div class="h-full rounded-full bg-fuchsia-500" style="width:${engaged}%"></div>
+            <div class="h-full rounded-full transition-all duration-500" style="width:${engaged}%;background:${engagedColor}"></div>
           </div>
         </div>
         <div class="rounded-2xl border border-slate-800 bg-slate-950/60 px-3 py-3">
           <p class="text-[10px] uppercase tracking-[0.16em] text-slate-500">${isCurrent ? "Reste / jour" : "Disponible / jour"}</p>
-          <p class="mt-1 text-xl font-semibold">${fmt0.format(perDay)}</p>
+          <p class="mt-1 text-xl font-semibold ${perDay < 0 ? "text-rose-400" : ""}">${fmt0.format(perDay)}</p>
           <p class="mt-1 text-[11px] text-slate-400">${daysLeft} j ${isCurrent ? "restants" : ""}</p>
         </div>
       </div>
 
-      <div class="rounded-2xl border border-slate-800 bg-slate-950/60 px-3 py-3">
-        <div class="flex items-center justify-between">
-          <p class="text-[11px] text-slate-400">Poids des récurrents</p>
-          <p class="text-sm font-medium">${recPct}%</p>
+      <!-- Pronostic fin de mois (D) -->
+      ${isCurrent && daysElapsed > 1 ? `
+      <div class="rounded-2xl border border-slate-800 bg-slate-950/60 px-3 py-2.5 flex items-center justify-between">
+        <div>
+          <p class="text-[10px] uppercase tracking-[0.16em] text-slate-500">Pronostic fin de mois</p>
+          <p class="text-[11px] text-slate-600 mt-0.5">Si rythme actuel maintenu</p>
         </div>
-        ${topHtml}
+        <p class="text-lg font-semibold ${projReste < 0 ? "text-rose-400" : "text-emerald-400"}">${fmt0.format(projReste)}</p>
+      </div>` : ""}
+
+      <!-- Prélèvements à venir (F) -->
+      ${upcomingHtml}
+
+    </section>
+
+    <!-- Répartition par catégorie (C1 + C2) -->
+    <section class="mt-5">
+      <h3 class="text-sm font-medium mb-3">Répartition · ${monthLabel(state.cur)}</h3>
+      <div class="rounded-2xl border border-slate-800 bg-slate-950/60 px-3 py-3 space-y-4">
+        ${donutHtml ? donutHtml + '<div class="mt-3 border-t border-slate-800/60 pt-3 space-y-2.5">' + catBarsHtml + "</div>" : catBarsHtml}
       </div>
     </section>
 
+    <!-- Tendance 4 mois (C4) -->
+    ${trendHtml ? `<section class="mt-4">${trendHtml}</section>` : ""}
+
+    <!-- Liste des dépenses -->
     <section class="mt-5">
       <div class="flex items-center justify-between mb-2">
         <h3 class="text-sm font-medium">Dépenses</h3>
@@ -193,6 +317,75 @@ function renderMois() {
   wireDepList();
   $("ouvrir-claude-btn")?.addEventListener("click", copierPromptIA);
   $("foyer-config-btn")?.addEventListener("click", foyerModal);
+
+  // FAB quick-add
+  $("fab-root").innerHTML = `
+    <button id="fab-quick-add"
+      class="fixed right-4 z-30 h-14 w-14 rounded-full bg-fuchsia-500 flex items-center justify-center shadow-[0_8px_30px_rgba(217,70,239,0.4)] hover:bg-fuchsia-400 active:scale-[0.95] transition text-2xl text-slate-950 font-bold select-none"
+      style="bottom:max(5.5rem,calc(4.5rem + env(safe-area-inset-bottom)))">+</button>`;
+  $("fab-quick-add").onclick = () => openQuickAdd(async () => { await loadMonth(); render(); });
+
+  // Donut chart (C1)
+  if (window.Chart && hasDepCats) {
+    const catForDonut = catEntries.filter(e => e.id !== "∅");
+    _donutChart = new window.Chart($("cat-donut"), {
+      type: "doughnut",
+      data: {
+        labels: catForDonut.map(e => e.name),
+        datasets: [{
+          data: catForDonut.map(e => e.amt),
+          backgroundColor: catForDonut.map(e => e.color + "cc"),
+          borderColor: "#020617",
+          borderWidth: 2,
+          hoverBorderWidth: 0,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: "68%",
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${fmt.format(ctx.parsed)}` } },
+        },
+      },
+    });
+  }
+
+  // Tendance chart (C4)
+  if (window.Chart && hasTrend) {
+    const trendAllMonths = [...state.trend, { month: k(), byCat }];
+    const trendLabels    = trendAllMonths.map(({ month }) =>
+      new Intl.DateTimeFormat("fr-FR", { month: "short" }).format(new Date(month))
+    );
+    const allCatIds = [...new Set(trendAllMonths.flatMap(({ byCat: bc }) => Object.keys(bc)))];
+    const trendDatasets = allCatIds.map(cid => {
+      const cat = state.categories.find(c => c.id === cid);
+      return {
+        label: cat ? cat.name : "Sans catégorie",
+        data: trendAllMonths.map(({ byCat: bc }) => bc[cid] || 0),
+        backgroundColor: (cat ? cat.color : "#64748b") + "bb",
+        borderRadius: 3,
+        borderSkipped: false,
+      };
+    });
+    _trendChart = new window.Chart($("trend-chart"), {
+      type: "bar",
+      data: { labels: trendLabels, datasets: trendDatasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { stacked: true, grid: { display: false }, ticks: { color: "#94a3b8", font: { size: 10 } }, border: { display: false } },
+          y: { stacked: true, grid: { color: "#1e293b60" }, ticks: { color: "#94a3b8", font: { size: 10 }, callback: v => fmt0.format(v) }, border: { display: false } },
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmt.format(ctx.parsed.y)}` } },
+        },
+      },
+    });
+  }
 }
 
 // ── Vue Récurrents ────────────────────────────────────────────
@@ -250,9 +443,10 @@ function renderRecurrents() {
     const row = e.target.closest("[data-id]"); if (!row) return;
     const r = state.recurrents.find(x => x.id === row.dataset.id);
     if (e.target.classList.contains("act-del")) {
-      if (!confirm(`Supprimer « ${r.label} » (${fmt.format(r.amount)}/mois) ?`)) return;
-      try { await ctx.sb.from("recurrents").delete().eq("id", r.id); await reloadRecs(); render(); }
-      catch { showToast(errMsg()); }
+      confirmModal(`Supprimer «&nbsp;${esc(r.label)}&nbsp;» (${fmt.format(r.amount)}/mois) ?`, async () => {
+        try { await ctx.sb.from("recurrents").delete().eq("id", r.id); await reloadRecs(); render(); }
+        catch { showToast(errMsg()); }
+      });
     } else if (e.target.classList.contains("act-toggle")) {
       try { await ctx.sb.from("recurrents").update({ active: !r.active }).eq("id", r.id); await reloadRecs(); render(); }
       catch { showToast(errMsg()); }
@@ -268,8 +462,9 @@ function renderCategories() {
   const body = state.categories.length
     ? state.categories.map(c => `
         <div class="flex items-center gap-2 rounded-2xl border border-slate-800 bg-slate-950/60 px-3 py-2 text-[12px]" data-id="${c.id}">
-          <span class="h-3 w-3 rounded-full" style="background:${c.color}"></span>
+          <span class="h-3 w-3 rounded-full flex-shrink-0" style="background:${c.color}"></span>
           <div class="flex-1 min-w-0 truncate">${esc(c.name)}</div>
+          ${c.budget ? `<span class="text-[11px] text-slate-500">${fmt0.format(c.budget)}</span>` : ""}
           <button class="rounded-xl border border-slate-700 px-2 py-1 text-[11px] text-slate-300 hover:text-fuchsia-400 hover:border-fuchsia-500/60 act-edit">Éditer</button>
           <button class="rounded-xl border border-slate-700 px-2 py-1 text-[11px] text-rose-400 hover:border-rose-500/70 act-del">Suppr.</button>
         </div>`).join("")
@@ -292,9 +487,10 @@ function renderCategories() {
     const row = e.target.closest("[data-id]"); if (!row) return;
     const c = state.categories.find(x => x.id === row.dataset.id);
     if (e.target.classList.contains("act-del")) {
-      if (!confirm(`Supprimer « ${c.name} » ? Les dépenses liées passeront en « sans catégorie ».`)) return;
-      try { await ctx.sb.from("categories").delete().eq("id", c.id); await reloadCats(); render(); }
-      catch { showToast(errMsg()); }
+      confirmModal(`Supprimer «&nbsp;${esc(c.name)}&nbsp;» ? Les dépenses liées passeront en «&nbsp;sans catégorie&nbsp;».`, async () => {
+        try { await ctx.sb.from("categories").delete().eq("id", c.id); await reloadCats(); render(); }
+        catch { showToast(errMsg()); }
+      });
     } else if (e.target.classList.contains("act-edit")) {
       catModal(c, async () => { await reloadCats(); render(); });
     }

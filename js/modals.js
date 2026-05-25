@@ -8,6 +8,7 @@ import { k } from './calculations.js';
 let _escListener = null;
 
 export function openModal(inner) {
+  if (_escListener) { document.removeEventListener("keydown", _escListener); _escListener = null; }
   $("modal-root").innerHTML = `
     <div id="modal" class="fixed inset-0 z-40 flex items-end justify-center bg-black/60 backdrop-blur-sm">
       <div class="w-full max-w-md rounded-t-3xl bg-slate-950 border-t border-slate-800 px-4 pb-6 pt-4 animate-[slideUp_0.25s_ease-out]">
@@ -23,6 +24,81 @@ export function openModal(inner) {
 export function closeModal() {
   $("modal-root").innerHTML = "";
   if (_escListener) { document.removeEventListener("keydown", _escListener); _escListener = null; }
+}
+
+// ── Modale de confirmation stylée ────────────────────────────
+
+export function confirmModal(htmlMsg, onConfirm) {
+  openModal(`
+    <div class="py-1">
+      <p class="text-sm text-slate-300 leading-relaxed">${htmlMsg}</p>
+      <div class="flex gap-2 mt-4">
+        <button id="conf-cancel" class="flex-1 rounded-full border border-slate-700 px-4 py-2.5 text-sm text-slate-300 hover:border-slate-600 active:scale-[0.97] transition">Annuler</button>
+        <button id="conf-ok" class="flex-1 rounded-full bg-rose-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-rose-400 active:scale-[0.97] transition">Supprimer</button>
+      </div>
+    </div>
+  `);
+  $("conf-cancel").onclick = closeModal;
+  $("conf-ok").onclick = () => { closeModal(); onConfirm(); };
+}
+
+// ── Quick-add dépense (2 étapes) ──────────────────────────────
+
+export function openQuickAdd(afterSave) {
+  const cats = [...state.categories, { id: null, name: "Sans catégorie", color: "#64748b" }];
+  const grid = cats.map(c =>
+    `<button type="button" data-cid="${c.id || ""}" data-cname="${esc(c.name)}" data-ccolor="${c.color}"
+      class="flex flex-col items-center gap-1.5 p-2.5 rounded-2xl border border-slate-800 bg-slate-900/60 hover:border-fuchsia-500/50 hover:bg-fuchsia-500/5 active:scale-[0.95] transition">
+      <span class="h-9 w-9 rounded-full flex items-center justify-center text-[11px] font-bold"
+        style="background:${c.color}22;color:${c.color}">${esc(c.name).slice(0, 2).toUpperCase()}</span>
+      <span class="text-[10px] text-slate-400 text-center leading-tight max-w-[52px] truncate">${esc(c.name)}</span>
+    </button>`
+  ).join("");
+
+  openModal(`
+    <h2 class="text-base font-semibold mb-3">Catégorie ?</h2>
+    <div id="qa-grid" class="grid grid-cols-4 gap-2">${grid}</div>
+  `);
+
+  $("qa-grid").addEventListener("click", e => {
+    const btn = e.target.closest("[data-cid]"); if (!btn) return;
+    const catId    = btn.dataset.cid || null;
+    const catName  = btn.dataset.cname;
+    const catColor = btn.dataset.ccolor;
+
+    openModal(`
+      <div class="flex items-center gap-2 mb-4">
+        <span class="h-6 w-6 rounded-full flex-shrink-0" style="background:${catColor}"></span>
+        <span class="text-sm font-medium">${esc(catName)}</span>
+      </div>
+      <div class="space-y-2">
+        <div>
+          <label class="text-[11px] uppercase tracking-[0.16em] text-slate-500">Montant (€)</label>
+          <input id="qa-amount" class="mt-1 w-full rounded-xl border border-slate-800 bg-slate-900/80 px-3 py-3 text-2xl font-semibold text-center tracking-wide" inputmode="decimal" placeholder="0" autofocus />
+        </div>
+        <div>
+          <label class="text-[11px] uppercase tracking-[0.16em] text-slate-500">Libellé</label>
+          <input id="qa-label" class="mt-1 w-full rounded-xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm" value="${esc(catName)}" />
+        </div>
+        <input id="qa-date" type="date" class="w-full rounded-xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm text-slate-400" value="${new Date().toISOString().slice(0, 10)}" />
+        <button id="qa-save" class="mt-1 w-full rounded-full bg-fuchsia-500 px-4 py-2.5 text-sm font-medium text-slate-950 hover:bg-fuchsia-400 active:scale-[0.97] transition">Ajouter</button>
+      </div>
+    `);
+
+    setTimeout(() => $("qa-amount")?.focus(), 80);
+
+    $("qa-save").onclick = async () => {
+      const amount = parseFloat($("qa-amount").value.replace(",", "."));
+      const label  = ($("qa-label").value.trim()) || catName;
+      if (isNaN(amount) || amount <= 0) { $("qa-amount").classList.add("border-rose-500"); $("qa-amount").focus(); return; }
+      const payload = { label, amount, category_id: catId || null, spent_on: $("qa-date").value, month: k() };
+      try {
+        await ctx.sb.from("depenses").insert(payload);
+        closeModal();
+        afterSave();
+      } catch { showToast(errMsg()); }
+    };
+  });
 }
 
 // ── Modale foyer ──────────────────────────────────────────────
@@ -163,6 +239,11 @@ export function catModal(c, afterSave) {
         <input id="c-name" class="mt-1 w-full rounded-xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm" value="${c ? esc(c.name) : ""}" />
       </div>
       <div>
+        <label class="text-[11px] uppercase tracking-[0.16em] text-slate-500">Budget mensuel € <span class="normal-case text-slate-600">(optionnel)</span></label>
+        <input id="c-budget" class="mt-1 w-full rounded-xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm" inputmode="decimal"
+          value="${c && c.budget ? c.budget : ""}" placeholder="Laisser vide = sans limite" />
+      </div>
+      <div>
         <label class="text-[11px] uppercase tracking-[0.16em] text-slate-500">Couleur</label>
         <div id="c-sw" class="mt-1 flex flex-wrap gap-2">${PALETTE.map(p => `<button type="button" class="h-7 w-7 rounded-full border-2 ${p === color ? "border-slate-50" : "border-transparent"}" style="background:${p}" data-c="${p}"></button>`).join("")}</div>
       </div>
@@ -177,9 +258,11 @@ export function catModal(c, afterSave) {
   });
   $("c-save").onclick = async () => {
     const name = $("c-name").value.trim(); if (!name) return;
+    const rawBudget = $("c-budget").value.replace(",", ".");
+    const budget = rawBudget && parseFloat(rawBudget) > 0 ? parseFloat(rawBudget) : null;
     try {
-      if (c) await ctx.sb.from("categories").update({ name, color: sel }).eq("id", c.id);
-      else   await ctx.sb.from("categories").insert({ name, color: sel });
+      if (c) await ctx.sb.from("categories").update({ name, color: sel, budget }).eq("id", c.id);
+      else   await ctx.sb.from("categories").insert({ name, color: sel, budget });
       closeModal();
       afterSave();
     } catch { showToast(errMsg()); }

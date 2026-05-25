@@ -1,4 +1,4 @@
-const CACHE = "budget-v4";
+const CACHE = "budget-v5";
 const SHELL = [
   "./", "./index.html", "./manifest.webmanifest",
   "./js/app.js", "./js/ctx.js", "./js/state.js", "./js/utils.js",

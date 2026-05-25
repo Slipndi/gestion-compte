@@ -10,4 +10,5 @@ export const state = {
   depenses:   [],
   revDefault: null,
   revMonth:   null,
+  trend:      [], // [{month, byCat:{catId: amount}}] — 3 mois précédents, ordre chronologique
 };

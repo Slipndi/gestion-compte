@@ -1,6 +1,6 @@
 import { ctx } from './ctx.js';
 import { state } from './state.js';
-import { monthKey, SEED_CATS, SEED_RECS } from './utils.js';
+import { monthKey, shiftMonth, SEED_CATS, SEED_RECS } from './utils.js';
 
 export async function bootstrap() {
   let { data: cats } = await ctx.sb.from("categories").select("*").order("name");
@@ -25,10 +25,24 @@ export async function bootstrap() {
 
 export async function loadMonth() {
   const key = monthKey(state.cur);
-  const { data: deps } = await ctx.sb.from("depenses").select("*").eq("month", key).order("spent_on", { ascending: false });
+  const [{ data: deps }, { data: rm }, { data: trendDeps }] = await Promise.all([
+    ctx.sb.from("depenses").select("*").eq("month", key).order("spent_on", { ascending: false }),
+    ctx.sb.from("revenu_months").select("*").eq("month", key).maybeSingle(),
+    ctx.sb.from("depenses").select("month,category_id,amount")
+      .in("month", [3, 2, 1].map(n => monthKey(shiftMonth(state.cur, -n)))),
+  ]);
   state.depenses = deps || [];
-  const { data: rm } = await ctx.sb.from("revenu_months").select("*").eq("month", key).maybeSingle();
   state.revMonth = rm || null;
+
+  const priorKeys = [3, 2, 1].map(n => monthKey(shiftMonth(state.cur, -n)));
+  const byMonth = {};
+  priorKeys.forEach(mk => { byMonth[mk] = {}; });
+  (trendDeps || []).forEach(d => {
+    if (!byMonth[d.month]) return;
+    const cid = d.category_id || "∅";
+    byMonth[d.month][cid] = (byMonth[d.month][cid] || 0) + Number(d.amount);
+  });
+  state.trend = priorKeys.map(mk => ({ month: mk, byCat: byMonth[mk] }));
 }
 
 export async function reloadRecs() {

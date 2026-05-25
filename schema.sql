@@ -76,3 +76,7 @@ create policy "own_revenu_defaults" on public.revenu_defaults
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "own_revenu_months"   on public.revenu_months
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ── Migration : budget optionnel par catégorie ──────────────────
+-- À exécuter dans Supabase SQL Editor si la table categories existe déjà
+alter table public.categories add column if not exists budget numeric;
