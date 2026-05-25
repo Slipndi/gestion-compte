@@ -19,6 +19,7 @@
     --serif:'Fraunces',Georgia,serif; --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
   }
   *{box-sizing:border-box;margin:0}
+  [hidden]{display:none!important}
   body{background:var(--paper);color:var(--ink);font-family:var(--mono);-webkit-font-smoothing:antialiased}
   .wrap{max-width:600px;margin:0 auto;padding:20px 16px 100px}
   h1{font-family:var(--serif);font-weight:600;letter-spacing:-.02em}
@@ -73,7 +74,9 @@
   .chip{font-size:11px;color:var(--muted);background:var(--cardAlt);border-radius:99px;padding:2px 8px}
   /* Bottom nav */
   nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--line);
-    display:flex;justify-content:space-around;padding:8px 0 calc(8px + env(safe-area-inset-bottom));z-index:20}
+    display:flex;justify-content:space-around;padding:8px 0 calc(8px + env(safe-area-inset-bottom));z-index:20;
+    opacity:.4;pointer-events:none;transition:opacity .2s ease;}
+  nav.nav-active{opacity:1;pointer-events:auto;}
   nav button{background:none;border:none;color:var(--muted);font-size:11px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 10px}
   nav button .ico{font-size:18px}
   nav button.on{color:var(--accent)}
@@ -184,9 +187,9 @@
     if (s) showApp(); else showAuth();
   });
 
-  function showAuth(){ $("auth").hidden = false; $("app").hidden = true; $("nav").hidden = true; }
+  function showAuth(){ $("auth").hidden = false; $("app").hidden = true; $("nav").hidden = true; $("nav").classList.remove("nav-active"); }
   async function showApp(){
-    $("auth").hidden = true; $("app").hidden = false; $("nav").hidden = false;
+    $("auth").hidden = true; $("app").hidden = false; $("nav").hidden = false; $("nav").classList.add("nav-active");
     await bootstrap();
     render();
   }
