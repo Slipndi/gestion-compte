@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#211C15" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" href="icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="icon.svg" />
+<title>Budget</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#ECE5D6; --card:#F8F4EA; --cardAlt:#F2ECDE; --ink:#211C15;
+    --muted:#8C8475; --line:#D8CFBC; --accent:#C2522F; --accentSoft:#E9C7B8;
+    --green:#3F6151; --red:#B23A2E;
+    --serif:'Fraunces',Georgia,serif; --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0}
+  body{background:var(--paper);color:var(--ink);font-family:var(--mono);-webkit-font-smoothing:antialiased}
+  .wrap{max-width:600px;margin:0 auto;padding:20px 16px 100px}
+  h1{font-family:var(--serif);font-weight:600;letter-spacing:-.02em}
+  input,select,button{font-family:var(--mono);font-size:14px}
+  .in{background:var(--card);border:1px solid var(--line);color:var(--ink);padding:10px 12px;border-radius:9px;outline:none;transition:border-color .15s,box-shadow .15s;width:100%}
+  .in:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accentSoft) 40%,transparent)}
+  .in::placeholder{color:var(--muted)}
+  .btn{cursor:pointer;border:none;transition:transform .1s,background .15s,color .15s;border-radius:9px}
+  .btn:active{transform:scale(.96)}
+  .btn-pri{background:var(--accent);color:#fff;padding:11px 16px;font-weight:500}
+  .btn-dark{background:var(--ink);color:var(--paper);padding:11px 16px;font-weight:500}
+  .btn-ghost{background:var(--card);color:var(--ink);border:1px solid var(--line);padding:9px 13px}
+  .ic{width:30px;height:30px;display:grid;place-items:center;border-radius:8px;background:transparent;color:var(--muted);font-size:15px;cursor:pointer;border:1px solid transparent;transition:all .15s}
+  .ic:hover{background:var(--cardAlt);color:var(--ink);border-color:var(--line)}
+  .ic.del:hover{color:var(--accent)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px}
+  .row{display:flex;align-items:center;gap:10px}
+  .muted{color:var(--muted)}
+  .tnum{font-variant-numeric:tabular-nums}
+  /* Auth */
+  #auth{min-height:100vh;display:grid;place-items:center;padding:24px}
+  .authcard{max-width:340px;width:100%;text-align:center}
+  .authcard h1{font-size:30px;margin-bottom:6px}
+  .authcard p{color:var(--muted);font-size:13px;margin-bottom:22px}
+  .authcard .in{margin-bottom:10px;text-align:center}
+  .err{color:var(--red);font-size:12px;margin-top:10px;min-height:16px}
+  .link{color:var(--accent);cursor:pointer;font-size:13px;margin-top:14px;display:inline-block}
+  /* Header / month nav */
+  .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+  .monthnav{display:flex;align-items:center;gap:6px}
+  .monthnav h1{font-size:22px;min-width:150px;text-align:center;text-transform:capitalize}
+  /* Reste card */
+  .reste{background:var(--ink);color:var(--paper);border-radius:16px;padding:22px 24px;margin-bottom:14px}
+  .reste .lab{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#B7AD99}
+  .reste .big{font-family:var(--serif);font-weight:600;font-size:44px;line-height:1.05;letter-spacing:-.02em;margin:6px 0 14px}
+  .reste .brk{display:flex;justify-content:space-between;font-size:12px;color:#CFC6B2;padding:3px 0}
+  .reste .brk b{color:var(--paper);font-weight:500}
+  /* Analysis */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+  .stat .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+  .stat .v{font-family:var(--serif);font-size:24px;font-weight:600;margin-top:4px}
+  .bar{height:7px;border-radius:99px;background:var(--cardAlt);overflow:hidden;margin-top:8px}
+  .bar > div{height:100%;background:var(--accent)}
+  .sec-title{font-family:var(--serif);font-size:17px;font-weight:600;margin:18px 0 10px;display:flex;justify-content:space-between;align-items:center}
+  .item{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:10px 12px;display:flex;align-items:center;gap:10px;margin-bottom:7px;animation:rise .3s cubic-bezier(.2,.7,.3,1) both}
+  @keyframes rise{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+  .item.off{opacity:.5}
+  .dot{width:9px;height:9px;border-radius:99px;flex:none}
+  .item .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .item .sub{font-size:11px;color:var(--muted)}
+  .empty{color:var(--muted);text-align:center;padding:26px;font-size:13px}
+  .chip{font-size:11px;color:var(--muted);background:var(--cardAlt);border-radius:99px;padding:2px 8px}
+  /* Bottom nav */
+  nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--line);
+    display:flex;justify-content:space-around;padding:8px 0 calc(8px + env(safe-area-inset-bottom));z-index:20}
+  nav button{background:none;border:none;color:var(--muted);font-size:11px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 10px}
+  nav button .ico{font-size:18px}
+  nav button.on{color:var(--accent)}
+  /* Modal */
+  .modal{position:fixed;inset:0;background:rgba(33,28,21,.45);display:grid;place-items:end center;z-index:40}
+  .sheet{background:var(--paper);width:100%;max-width:600px;border-radius:18px 18px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));animation:up .25s cubic-bezier(.2,.7,.3,1)}
+  @keyframes up{from{transform:translateY(100%)}to{transform:none}}
+  .sheet h2{font-family:var(--serif);font-size:20px;font-weight:600;margin-bottom:14px}
+  .field{margin-bottom:10px}
+  .field label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:5px}
+  .swatches{display:flex;gap:7px;flex-wrap:wrap}
+  .sw{width:26px;height:26px;border-radius:99px;cursor:pointer;border:2px solid transparent}
+  .sw.sel{border-color:var(--ink)}
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth">
+  <div class="authcard">
+    <h1>Budget</h1>
+    <p id="auth-sub">Connecte-toi pour accéder à tes comptes.</p>
+    <input class="in" id="email" type="email" placeholder="email" autocomplete="email" />
+    <input class="in" id="password" type="password" placeholder="mot de passe" autocomplete="current-password" />
+    <button class="btn btn-dark" id="auth-go" style="width:100%;margin-top:4px">Se connecter</button>
+    <div class="err" id="auth-err"></div>
+    <span class="link" id="auth-toggle">Pas de compte ? Créer un compte</span>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="wrap" hidden></div>
+
+<!-- NAV -->
+<nav id="nav" hidden>
+  <button data-tab="mois" class="on"><span class="ico">◉</span>Mois</button>
+  <button data-tab="recurrents"><span class="ico">↻</span>Récurrents</button>
+  <button data-tab="categories"><span class="ico">▦</span>Catégories</button>
+  <button data-tab="revenus"><span class="ico">↟</span>Revenus</button>
+</nav>
+
+<div id="modal-root"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(() => {
+  "use strict";
+
+  // ╔════════════════════════════════════════════════════════════╗
+  // ║  CONFIG — remplace par tes valeurs (Supabase → Settings →    ║
+  // ║  API). La clé "anon" est PUBLIQUE par design : sans risque    ║
+  // ║  tant que la RLS est active (elle l'est dans schema.sql).     ║
+  // ╚════════════════════════════════════════════════════════════╝
+  const SUPABASE_URL = "https://TON-PROJET.supabase.co";
+  const SUPABASE_ANON_KEY = "TA_CLE_ANON";
+
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const $ = (id) => document.getElementById(id);
+  const fmt = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" });
+  const fmt0 = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+  const monthLabel = (d) => new Intl.DateTimeFormat("fr-FR", { month:"long", year:"numeric" }).format(d);
+  const PALETTE = ["#C2522F","#3F6151","#2F6FB2","#9A6BB0","#C9A227","#5C4A3A","#B23A2E","#4E7A6B","#8C8475","#A8553F"];
+  const SEED_CATS = [
+    ["Course","#3F6151"],["Essence","#5C4A3A"],["Loisirs","#9A6BB0"],["Habits","#2F6FB2"],
+    ["Enfants","#C9A227"],["Santé","#B23A2E"],["Maison","#4E7A6B"],["Autres","#8C8475"],
+  ];
+  const SEED_RECS = [
+    ["Maison (prêt)",960,null],["Prêt voiture",555,4],["Wegovy",190,null],["Crédit conso",180,4],
+    ["Cantines",160,null],["EDF",120,null],["GMF",120,null],["Panneaux solaires",110,null],
+    ["Mutuelle",107,null],["Enfants",97,null],["Taxe foncière",88,15],["Drawer",80,null],
+    ["iPhone",75,null],["CBP",56,null],["Veolia (eau)",56,null],["SFR",54,null],["Coiffeur",50,null],
+    ["Assurance vie",20,null],["Deezer",19,null],["Cb",18,null],["Netflix",14,null],["Amazon Prime",7,null],
+  ];
+
+  // ── State ─────────────────────────────────────────────────────
+  let session = null, tab = "mois";
+  let cur = startOfMonth(new Date());
+  let categories = [], recurrents = [], depenses = [], revDefault = null, revMonth = null;
+
+  function startOfMonth(d){ return new Date(d.getFullYear(), d.getMonth(), 1); }
+  function monthKey(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-01`; }
+  function shiftMonth(d, n){ return new Date(d.getFullYear(), d.getMonth()+n, 1); }
+  const k = () => monthKey(cur);
+
+  // ── Auth ──────────────────────────────────────────────────────
+  let mode = "in";
+  $("auth-toggle").onclick = () => {
+    mode = mode === "in" ? "up" : "in";
+    $("auth-sub").textContent = mode === "in" ? "Connecte-toi pour accéder à tes comptes." : "Crée ton compte (email + mot de passe).";
+    $("auth-go").textContent = mode === "in" ? "Se connecter" : "Créer le compte";
+    $("auth-toggle").textContent = mode === "in" ? "Pas de compte ? Créer un compte" : "Déjà un compte ? Se connecter";
+    $("auth-err").textContent = "";
+  };
+  $("auth-go").onclick = doAuth;
+  $("password").addEventListener("keydown", e => { if (e.key === "Enter") doAuth(); });
+  async function doAuth(){
+    const email = $("email").value.trim(), password = $("password").value;
+    $("auth-err").textContent = "";
+    if (!email || !password) return ($("auth-err").textContent = "Email et mot de passe requis.");
+    const fn = mode === "in" ? sb.auth.signInWithPassword({ email, password }) : sb.auth.signUp({ email, password });
+    const { data, error } = await fn;
+    if (error) return ($("auth-err").textContent = error.message);
+    if (mode === "up" && !data.session) return ($("auth-err").textContent = "Compte créé. Confirme l'email (ou désactive la confirmation dans Supabase) puis connecte-toi.");
+  }
+
+  sb.auth.onAuthStateChange((_e, s) => {
+    session = s;
+    if (s) showApp(); else showAuth();
+  });
+
+  function showAuth(){ $("auth").hidden = false; $("app").hidden = true; $("nav").hidden = true; }
+  async function showApp(){
+    $("auth").hidden = true; $("app").hidden = false; $("nav").hidden = false;
+    await bootstrap();
+    render();
+  }
+
+  // ── Data ──────────────────────────────────────────────────────
+  async function bootstrap(){
+    let { data: cats } = await sb.from("categories").select("*").order("name");
+    if (!cats || cats.length === 0){
+      await sb.from("categories").insert(SEED_CATS.map(([name,color]) => ({ name, color })));
+      ({ data: cats } = await sb.from("categories").select("*").order("name"));
+    }
+    categories = cats || [];
+
+    let { data: rd } = await sb.from("revenu_defaults").select("*").maybeSingle();
+    if (!rd){
+      await sb.from("revenu_defaults").insert({ ludovic: 2640, marie_laure: 2300, aides: 616 });
+      ({ data: rd } = await sb.from("revenu_defaults").select("*").maybeSingle());
+    }
+    revDefault = rd;
+
+    const { data: recs } = await sb.from("recurrents").select("*").order("amount", { ascending:false });
+    recurrents = recs || [];
+
+    await loadMonth();
+  }
+
+  async function loadMonth(){
+    const { data: deps } = await sb.from("depenses").select("*").eq("month", k()).order("spent_on", { ascending:false });
+    depenses = deps || [];
+    const { data: rm } = await sb.from("revenu_months").select("*").eq("month", k()).maybeSingle();
+    revMonth = rm || null;
+  }
+
+  function income(){
+    const r = revMonth || revDefault || { ludovic:0, marie_laure:0, aides:0 };
+    return Number(r.ludovic) + Number(r.marie_laure) + Number(r.aides);
+  }
+  function recsForMonth(){
+    const key = k();
+    return recurrents.filter(r => r.active && r.start_month <= key && (!r.end_month || r.end_month >= key));
+  }
+  const recTotal = () => recsForMonth().reduce((s,r) => s + Number(r.amount), 0);
+  const depTotal = () => depenses.reduce((s,d) => s + Number(d.amount), 0);
+  const reste = () => income() - recTotal() - depTotal();
+
+  // ── Render dispatch ───────────────────────────────────────────
+  function render(){
+    [...$("nav").children].forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
+    if (tab === "mois") renderMois();
+    else if (tab === "recurrents") renderRecurrents();
+    else if (tab === "categories") renderCategories();
+    else if (tab === "revenus") renderRevenus();
+  }
+  $("nav").addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    tab = b.dataset.tab; render();
+  });
+
+  function header(extra=""){
+    return `<div class="top">
+      <div class="monthnav">
+        <button class="ic" id="m-prev">‹</button>
+        <h1>${tab==="mois"?monthLabel(cur):tabName()}</h1>
+        <button class="ic" id="m-next">${tab==="mois"?"›":""}</button>
+      </div>
+      <button class="ic" id="logout" title="Déconnexion">⎋</button>
+    </div>${extra}`;
+  }
+  function tabName(){ return { recurrents:"Récurrents", categories:"Catégories", revenus:"Revenus" }[tab] || ""; }
+  function wireHeader(){
+    $("logout").onclick = () => sb.auth.signOut();
+    const prev = $("m-prev"), next = $("m-next");
+    if (tab === "mois"){
+      prev.onclick = async () => { cur = shiftMonth(cur,-1); await loadMonth(); render(); };
+      next.onclick = async () => { cur = shiftMonth(cur, 1); await loadMonth(); render(); };
+    } else { prev.style.visibility="hidden"; next.style.visibility="hidden"; }
+  }
+
+  // ── MOIS ──────────────────────────────────────────────────────
+  function renderMois(){
+    const inc = income(), rec = recTotal(), dep = depTotal(), rst = reste();
+    const engaged = inc > 0 ? Math.min(100, Math.round((rec+dep)/inc*100)) : 0;
+    const recPct = inc > 0 ? Math.round(rec/inc*100) : 0;
+
+    // jours restants si mois courant
+    const now = new Date(), isCurrent = now.getFullYear()===cur.getFullYear() && now.getMonth()===cur.getMonth();
+    const daysInMonth = new Date(cur.getFullYear(), cur.getMonth()+1, 0).getDate();
+    const daysLeft = isCurrent ? Math.max(1, daysInMonth - now.getDate() + 1) : daysInMonth;
+    const perDay = rst > 0 ? rst / daysLeft : 0;
+
+    // top catégories
+    const byCat = {};
+    depenses.forEach(d => { const c = d.category_id || "∅"; byCat[c] = (byCat[c]||0) + Number(d.amount); });
+    const top = Object.entries(byCat).sort((a,b)=>b[1]-a[1]).slice(0,3)
+      .map(([cid,amt]) => { const c = categories.find(x=>x.id===cid); return { name: c?c.name:"Sans catégorie", color: c?c.color:"#8C8475", amt }; });
+
+    $("app").innerHTML = header(`
+      <div class="reste">
+        <div class="lab">Reste à dépenser</div>
+        <div class="big tnum" style="color:${rst<0?"#E9A89B":"var(--paper)"}">${fmt.format(rst)}</div>
+        <div class="brk"><span>Revenus</span><b class="tnum">${fmt.format(inc)}</b></div>
+        <div class="brk"><span>− Récurrents (${recsForMonth().length})</span><b class="tnum">−${fmt.format(rec)}</b></div>
+        <div class="brk"><span>− Dépenses (${depenses.length})</span><b class="tnum">−${fmt.format(dep)}</b></div>
+      </div>
+
+      <div class="grid2">
+        <div class="card stat">
+          <div class="k">Engagé</div>
+          <div class="v tnum">${engaged}%</div>
+          <div class="bar"><div style="width:${engaged}%"></div></div>
+        </div>
+        <div class="card stat">
+          <div class="k">${isCurrent?"Reste / jour":"Disponible / jour"}</div>
+          <div class="v tnum">${fmt0.format(perDay)}</div>
+          <div class="muted" style="font-size:11px;margin-top:6px">${daysLeft} j ${isCurrent?"restants":""}</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row" style="justify-content:space-between">
+          <span class="muted" style="font-size:12px">Poids des récurrents</span>
+          <b class="tnum">${recPct}%</b>
+        </div>
+        ${top.length?`<div style="margin-top:10px">
+          <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px">Top dépenses du mois</div>
+          ${top.map(t=>`<div class="row" style="margin-bottom:5px"><span class="dot" style="background:${t.color}"></span><span style="flex:1;font-size:13px">${esc(t.name)}</span><b class="tnum" style="font-size:13px">${fmt.format(t.amt)}</b></div>`).join("")}
+        </div>`:``}
+      </div>
+
+      <div class="sec-title">Dépenses <button class="btn btn-pri" id="add-dep" style="font-size:13px;padding:7px 13px">+ Dépense</button></div>
+      <div id="dep-list">${depList()}</div>
+    `);
+    wireHeader();
+    $("add-dep").onclick = () => depModal();
+    wireDepList();
+  }
+  function depList(){
+    if (!depenses.length) return `<div class="empty">Aucune dépense ce mois-ci.</div>`;
+    return depenses.map(d => {
+      const c = categories.find(x => x.id === d.category_id);
+      return `<div class="item" data-id="${d.id}">
+        <span class="dot" style="background:${c?c.color:"#8C8475"}"></span>
+        <div class="nm"><div>${esc(d.label)}</div><div class="sub">${c?esc(c.name):"Sans catégorie"} · ${d.spent_on?.slice(8,10)}/${d.spent_on?.slice(5,7)}</div></div>
+        <b class="tnum">${fmt.format(d.amount)}</b>
+        <span class="ic act-edit" title="Modifier">✎</span>
+        <span class="ic del act-del" title="Supprimer">✕</span>
+      </div>`;
+    }).join("");
+  }
+  function wireDepList(){
+    $("dep-list").addEventListener("click", async e => {
+      const row = e.target.closest(".item"); if (!row) return;
+      const d = depenses.find(x => x.id === row.dataset.id);
+      if (e.target.classList.contains("act-del")){ await sb.from("depenses").delete().eq("id", d.id); await loadMonth(); render(); }
+      else if (e.target.classList.contains("act-edit")) depModal(d);
+    });
+  }
+  function depModal(d){
+    const opts = categories.map(c => `<option value="${c.id}" ${d&&d.category_id===c.id?"selected":""}>${esc(c.name)}</option>`).join("");
+    openModal(`
+      <h2>${d?"Modifier la dépense":"Nouvelle dépense"}</h2>
+      <div class="field"><label>Nom</label><input class="in" id="d-label" value="${d?esc(d.label):""}" placeholder="ex. Carrefour"/></div>
+      <div class="field"><label>Montant (€)</label><input class="in" id="d-amount" inputmode="decimal" value="${d?d.amount:""}" placeholder="0,00"/></div>
+      <div class="field"><label>Catégorie</label><select class="in" id="d-cat"><option value="">Sans catégorie</option>${opts}</select></div>
+      <div class="field"><label>Date</label><input class="in" id="d-date" type="date" value="${d?d.spent_on:new Date().toISOString().slice(0,10)}"/></div>
+      <button class="btn btn-dark" id="d-save" style="width:100%;margin-top:6px">${d?"Enregistrer":"Ajouter"}</button>
+    `);
+    $("d-save").onclick = async () => {
+      const label = $("d-label").value.trim();
+      const amount = parseFloat($("d-amount").value.replace(",","."));
+      if (!label || isNaN(amount)) return;
+      const payload = { label, amount, category_id: $("d-cat").value || null, spent_on: $("d-date").value, month: k() };
+      if (d) await sb.from("depenses").update(payload).eq("id", d.id);
+      else await sb.from("depenses").insert(payload);
+      closeModal(); await loadMonth(); render();
+    };
+  }
+
+  // ── RÉCURRENTS ────────────────────────────────────────────────
+  function renderRecurrents(){
+    let body;
+    if (!recurrents.length){
+      body = `<div class="empty">Aucun récurrent.<br/><button class="btn btn-ghost" id="seed-rec" style="margin-top:12px">Importer le modèle (mars 2026)</button></div>`;
+    } else {
+      body = recurrents.map(r => {
+        const ends = r.end_month ? `fin ${r.end_month.slice(5,7)}/${r.end_month.slice(0,4)}` : "sans fin";
+        return `<div class="item ${r.active?"":"off"}" data-id="${r.id}">
+          <div class="nm"><div>${esc(r.label)}</div><div class="sub">${r.day?`le ${r.day} · `:""}${ends}</div></div>
+          <b class="tnum">${fmt.format(r.amount)}</b>
+          <span class="ic act-toggle" title="${r.active?"Pause":"Activer"}">${r.active?"⏸":"▶"}</span>
+          <span class="ic act-edit" title="Modifier">✎</span>
+          <span class="ic del act-del" title="Supprimer">✕</span>
+        </div>`;
+      }).join("");
+    }
+    $("app").innerHTML = header(`
+      <div class="sec-title">Paiements récurrents <button class="btn btn-pri" id="add-rec" style="font-size:13px;padding:7px 13px">+ Ajouter</button></div>
+      <div class="card" style="margin-bottom:12px"><div class="row" style="justify-content:space-between"><span class="muted" style="font-size:12px">Total actif ce mois (${recsForMonth().length})</span><b class="tnum">${fmt.format(recTotal())}</b></div></div>
+      <div id="rec-list">${body}</div>
+    `);
+    wireHeader();
+    $("add-rec").onclick = () => recModal();
+    if ($("seed-rec")) $("seed-rec").onclick = async () => {
+      const sm = monthKey(startOfMonth(new Date()));
+      await sb.from("recurrents").insert(SEED_RECS.map(([label,amount,day]) => ({ label, amount, day, start_month: sm, end_month: null, active: true })));
+      const { data } = await sb.from("recurrents").select("*").order("amount",{ascending:false}); recurrents = data||[]; render();
+    };
+    $("rec-list").addEventListener("click", async e => {
+      const row = e.target.closest(".item"); if (!row) return;
+      const r = recurrents.find(x => x.id === row.dataset.id);
+      if (e.target.classList.contains("act-del")){ await sb.from("recurrents").delete().eq("id", r.id); await reloadRecs(); }
+      else if (e.target.classList.contains("act-toggle")){ await sb.from("recurrents").update({ active: !r.active }).eq("id", r.id); await reloadRecs(); }
+      else if (e.target.classList.contains("act-edit")) recModal(r);
+    });
+  }
+  async function reloadRecs(){ const { data } = await sb.from("recurrents").select("*").order("amount",{ascending:false}); recurrents = data||[]; render(); }
+  function recModal(r){
+    const ym = (s) => s ? s.slice(0,7) : "";
+    openModal(`
+      <h2>${r?"Modifier le récurrent":"Nouveau récurrent"}</h2>
+      <div class="field"><label>Libellé</label><input class="in" id="r-label" value="${r?esc(r.label):""}" placeholder="ex. Mutuelle"/></div>
+      <div class="field"><label>Montant (€)</label><input class="in" id="r-amount" inputmode="decimal" value="${r?r.amount:""}" placeholder="0,00"/></div>
+      <div class="field"><label>Jour de prélèvement (optionnel)</label><input class="in" id="r-day" inputmode="numeric" value="${r&&r.day?r.day:""}" placeholder="1-31"/></div>
+      <div class="row" style="gap:10px">
+        <div class="field" style="flex:1"><label>Début</label><input class="in" id="r-start" type="month" value="${r?ym(r.start_month):monthKey(cur).slice(0,7)}"/></div>
+        <div class="field" style="flex:1"><label>Fin (optionnel)</label><input class="in" id="r-end" type="month" value="${r?ym(r.end_month):""}"/></div>
+      </div>
+      <button class="btn btn-dark" id="r-save" style="width:100%;margin-top:6px">${r?"Enregistrer":"Ajouter"}</button>
+    `);
+    $("r-save").onclick = async () => {
+      const label = $("r-label").value.trim();
+      const amount = parseFloat($("r-amount").value.replace(",","."));
+      if (!label || isNaN(amount)) return;
+      let day = $("r-day").value === "" ? null : Math.min(31, Math.max(1, parseInt($("r-day").value,10)));
+      if (Number.isNaN(day)) day = null;
+      const start = ($("r-start").value || monthKey(cur).slice(0,7)) + "-01";
+      const end = $("r-end").value ? $("r-end").value + "-01" : null;
+      const payload = { label, amount, day, start_month: start, end_month: end };
+      if (r) await sb.from("recurrents").update(payload).eq("id", r.id);
+      else await sb.from("recurrents").insert({ ...payload, active: true });
+      closeModal(); await reloadRecs();
+    };
+  }
+
+  // ── CATÉGORIES ────────────────────────────────────────────────
+  function renderCategories(){
+    const body = categories.length ? categories.map(c => `
+      <div class="item" data-id="${c.id}">
+        <span class="dot" style="background:${c.color}"></span>
+        <div class="nm">${esc(c.name)}</div>
+        <span class="ic act-edit" title="Modifier">✎</span>
+        <span class="ic del act-del" title="Supprimer">✕</span>
+      </div>`).join("") : `<div class="empty">Aucune catégorie.</div>`;
+    $("app").innerHTML = header(`
+      <div class="sec-title">Catégories <button class="btn btn-pri" id="add-cat" style="font-size:13px;padding:7px 13px">+ Ajouter</button></div>
+      <div id="cat-list">${body}</div>
+    `);
+    wireHeader();
+    $("add-cat").onclick = () => catModal();
+    $("cat-list").addEventListener("click", async e => {
+      const row = e.target.closest(".item"); if (!row) return;
+      const c = categories.find(x => x.id === row.dataset.id);
+      if (e.target.classList.contains("act-del")){
+        if (!confirm(`Supprimer « ${c.name} » ? Les dépenses liées passeront en « sans catégorie ».`)) return;
+        await sb.from("categories").delete().eq("id", c.id); await reloadCats();
+      } else if (e.target.classList.contains("act-edit")) catModal(c);
+    });
+  }
+  async function reloadCats(){ const { data } = await sb.from("categories").select("*").order("name"); categories = data||[]; render(); }
+  function catModal(c){
+    const color = c ? c.color : PALETTE[0];
+    openModal(`
+      <h2>${c?"Modifier la catégorie":"Nouvelle catégorie"}</h2>
+      <div class="field"><label>Nom</label><input class="in" id="c-name" value="${c?esc(c.name):""}" placeholder="ex. Restaurants"/></div>
+      <div class="field"><label>Couleur</label><div class="swatches" id="c-sw">${PALETTE.map(p=>`<span class="sw ${p===color?"sel":""}" data-c="${p}" style="background:${p}"></span>`).join("")}</div></div>
+      <button class="btn btn-dark" id="c-save" style="width:100%;margin-top:6px">${c?"Enregistrer":"Ajouter"}</button>
+    `);
+    let sel = color;
+    $("c-sw").addEventListener("click", e => {
+      const s = e.target.closest(".sw"); if (!s) return;
+      sel = s.dataset.c; [...$("c-sw").children].forEach(x => x.classList.toggle("sel", x===s));
+    });
+    $("c-save").onclick = async () => {
+      const name = $("c-name").value.trim(); if (!name) return;
+      if (c) await sb.from("categories").update({ name, color: sel }).eq("id", c.id);
+      else await sb.from("categories").insert({ name, color: sel });
+      closeModal(); await reloadCats();
+    };
+  }
+
+  // ── REVENUS ───────────────────────────────────────────────────
+  function renderRevenus(){
+    const d = revDefault || { ludovic:0, marie_laure:0, aides:0 };
+    const m = revMonth;
+    const usingOverride = !!m;
+    const v = m || d;
+    $("app").innerHTML = header(`
+      <div class="card" style="margin-bottom:14px">
+        <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Revenus du mois — ${monthLabel(cur)}</div>
+        <div class="field"><label>Ludovic</label><input class="in" id="rv-l" inputmode="decimal" value="${v.ludovic}"/></div>
+        <div class="field"><label>Marie-Laure</label><input class="in" id="rv-m" inputmode="decimal" value="${v.marie_laure}"/></div>
+        <div class="field"><label>Aides</label><input class="in" id="rv-a" inputmode="decimal" value="${v.aides}"/></div>
+        <div class="row" style="gap:8px;margin-top:6px">
+          <button class="btn btn-dark" id="rv-save" style="flex:1">Enregistrer pour ce mois</button>
+          ${usingOverride?`<button class="btn btn-ghost" id="rv-reset">Revenir au défaut</button>`:""}
+        </div>
+        <div class="muted" style="font-size:11px;margin-top:10px">${usingOverride?"Ce mois utilise une valeur personnalisée.":"Ce mois utilise les revenus par défaut."}</div>
+      </div>
+
+      <div class="card">
+        <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Valeurs par défaut (tous les mois)</div>
+        <div class="field"><label>Ludovic</label><input class="in" id="dv-l" inputmode="decimal" value="${d.ludovic}"/></div>
+        <div class="field"><label>Marie-Laure</label><input class="in" id="dv-m" inputmode="decimal" value="${d.marie_laure}"/></div>
+        <div class="field"><label>Aides</label><input class="in" id="dv-a" inputmode="decimal" value="${d.aides}"/></div>
+        <button class="btn btn-ghost" id="dv-save" style="width:100%;margin-top:6px">Mettre à jour le défaut</button>
+      </div>
+    `);
+    wireHeader();
+    const num = (id) => { const x = parseFloat($(id).value.replace(",",".")); return isNaN(x)?0:x; };
+    $("rv-save").onclick = async () => {
+      await sb.from("revenu_months").upsert({ month: k(), ludovic: num("rv-l"), marie_laure: num("rv-m"), aides: num("rv-a") }, { onConflict: "user_id,month" });
+      await loadMonth(); render();
+    };
+    if ($("rv-reset")) $("rv-reset").onclick = async () => { await sb.from("revenu_months").delete().eq("month", k()); await loadMonth(); render(); };
+    $("dv-save").onclick = async () => {
+      await sb.from("revenu_defaults").update({ ludovic: num("dv-l"), marie_laure: num("dv-m"), aides: num("dv-a") }).eq("user_id", session.user.id);
+      const { data } = await sb.from("revenu_defaults").select("*").maybeSingle(); revDefault = data; render();
+    };
+  }
+
+  // ── Modal helpers ─────────────────────────────────────────────
+  function openModal(html){
+    $("modal-root").innerHTML = `<div class="modal" id="modal"><div class="sheet">${html}</div></div>`;
+    $("modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
+  }
+  function closeModal(){ $("modal-root").innerHTML = ""; }
+
+  // ── Boot ──────────────────────────────────────────────────────
+  if (SUPABASE_URL.includes("TON-PROJET")){
+    document.body.innerHTML = `<div class="wrap"><div class="card" style="margin-top:40px"><b>Configuration requise</b><p class="muted" style="font-size:13px;margin-top:8px;line-height:1.5">Ouvre <code>index.html</code> et renseigne <code>SUPABASE_URL</code> et <code>SUPABASE_ANON_KEY</code> (Supabase → Settings → API). Puis recharge.</p></div></div>`;
+    return;
+  }
+  sb.auth.getSession().then(({ data }) => { session = data.session; session ? showApp() : showAuth(); });
+  if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(()=>{}));
+})();
+</script>
+</body>
+</html>
