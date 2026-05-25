@@ -1,4 +1,4 @@
-const CACHE = "budget-v5";
+const CACHE = "budget-v6";
 const SHELL = [
   "./", "./index.html", "./manifest.webmanifest",
   "./js/app.js", "./js/ctx.js", "./js/state.js", "./js/utils.js",
@@ -23,21 +23,9 @@ self.addEventListener("fetch", (e) => {
   const { request } = e;
   if (request.method !== "GET") return;
   const url = new URL(request.url);
-  // Appels API Supabase : toujours réseau, jamais mis en cache
+  // Appels API Supabase et config.js : toujours réseau, jamais mis en cache
   if (url.hostname.endsWith("supabase.co") || url.hostname === "esm.sh") return;
-  // config.js : réseau d'abord (contient les clés injectées au déploiement)
-  if (url.pathname.endsWith("/config.js")) {
-    e.respondWith(
-      fetch(request)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put(request, copy)).catch(() => {});
-          return res;
-        })
-        .catch(() => caches.match(request))
-    );
-    return;
-  }
+  if (url.pathname.endsWith("/config.js")) return;
   // index.html : réseau d'abord pour toujours servir la dernière version
   if (url.pathname === "/" || url.pathname.endsWith("/index.html")) {
     e.respondWith(
