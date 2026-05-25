@@ -18,8 +18,8 @@
               bg: '#020617',
               card: '#020617',
               cardSoft: '#0f172a',
-              accent: '#22c55e',
-              accentSoft: 'rgba(34,197,94,0.12)',
+              accent: '#d946ef',                    // fuchsia
+              accentSoft: 'rgba(217,70,239,0.12)',  // fuchsia en soft
               danger: '#ef4444',
             },
           }
@@ -37,7 +37,7 @@
     <section id="auth" class="w-full max-w-md px-4">
       <div class="bg-slate-950/80 border border-slate-800/80 rounded-3xl shadow-2xl shadow-black/70 px-6 pt-6 pb-5 backdrop-blur">
         <div class="flex items-center gap-3 mb-5">
-          <div class="h-10 w-10 rounded-2xl bg-emerald-500/10 border border-emerald-400/40 flex items-center justify-center text-emerald-400">
+          <div class="h-10 w-10 rounded-2xl bg-fuchsia-500/10 border border-fuchsia-400/40 flex items-center justify-center text-fuchsia-400">
             <span class="text-xl">€</span>
           </div>
           <div>
@@ -48,13 +48,13 @@
 
         <div class="space-y-2 mb-3">
           <input id="email" type="email" autocomplete="email" placeholder="Email"
-                 class="w-full rounded-xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/70 focus:border-emerald-400/70 transition" />
+                 class="w-full rounded-xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/70 focus:border-fuchsia-400/70 transition" />
           <input id="password" type="password" autocomplete="current-password" placeholder="Mot de passe"
-                 class="w-full rounded-xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/70 focus:border-emerald-400/70 transition" />
+                 class="w-full rounded-xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/70 focus:border-fuchsia-400/70 transition" />
         </div>
 
         <button id="auth-go"
-                class="mt-1 inline-flex w-full items-center justify-center gap-2 rounded-full bg-emerald-500 px-4 py-2.5 text-sm font-medium text-slate-950 shadow-[0_12px_40px_rgba(16,185,129,0.5)] hover:bg-emerald-400 active:scale-[0.97] transition">
+                class="mt-1 inline-flex w-full items-center justify-center gap-2 rounded-full bg-fuchsia-500 px-4 py-2.5 text-sm font-medium text-slate-950 shadow-[0_12px_40px_rgba(16,185,129,0.5)] hover:bg-fuchsia-400 active:scale-[0.97] transition">
           Se connecter
         </button>
 
@@ -223,7 +223,7 @@
         function render(){
           nav.querySelectorAll("[data-tab]").forEach(b => {
             const on = b.dataset.tab === tab;
-            b.classList.toggle("text-emerald-400", on);
+            b.classList.toggle("text-fuchsia-400", on);
             b.classList.toggle("text-slate-400", !on);
           });
           if (tab === "mois") renderMois();
@@ -243,13 +243,13 @@
         function header(extra = ""){ return `
           <div class="flex items-center justify-between mb-4">
             <div class="flex items-center gap-3">
-              <button id="m-prev" class="h-8 w-8 rounded-xl border border-slate-800 bg-slate-900/70 flex items-center justify-center text-slate-400 text-sm hover:text-emerald-400 hover:border-emerald-500/50 transition">‹</button>
+              <button id="m-prev" class="h-8 w-8 rounded-xl border border-slate-800 bg-slate-900/70 flex items-center justify-center text-slate-400 text-sm hover:text-fuchsia-400 hover:border-fuchsia-500/50 transition">‹</button>
               <div>
                 <p class="text-[11px] uppercase tracking-[0.16em] text-slate-500">${tab === "mois" ? "Vue mensuelle" : tabName()}</p>
                 <h2 class="text-lg font-semibold leading-tight capitalize">${tab === "mois" ? monthLabel(cur) : tabName()}</h2>
               </div>
             </div>
-            <button id="m-next" class="h-8 w-8 rounded-xl border border-slate-800 bg-slate-900/70 flex items-center justify-center text-slate-400 text-sm hover:text-emerald-400 hover:border-emerald-500/50 transition">${tab === "mois" ? "›" : ""}</button>
+            <button id="m-next" class="h-8 w-8 rounded-xl border border-slate-800 bg-slate-900/70 flex items-center justify-center text-slate-400 text-sm hover:text-fuchsia-400 hover:border-fuchsia-500/50 transition">${tab === "mois" ? "›" : ""}</button>
           </div>
           ${extra}
         `; }
@@ -298,7 +298,7 @@
             <section class="space-y-3">
               <div class="rounded-3xl bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800/80 px-4 py-4 shadow-xl">
                 <p class="text-[11px] uppercase tracking-[0.18em] text-slate-400">Reste à dépenser</p>
-                <p class="mt-1 text-[30px] font-semibold leading-none tracking-tight ${rst<0 ? 'text-rose-400' : 'text-emerald-400'}">${fmt.format(rst)}</p>
+                <p class="mt-1 text-[30px] font-semibold leading-none tracking-tight ${rst<0 ? 'text-rose-400' : 'text-fuchsia-400'}">${fmt.format(rst)}</p>
                 <div class="mt-3 grid grid-cols-3 gap-2 text-[11px] text-slate-400">
                   <div>
                     <p class="text-[10px] uppercase tracking-[0.16em] text-slate-500">Revenus</p>
@@ -320,7 +320,7 @@
                   <p class="text-[10px] uppercase tracking-[0.16em] text-slate-500">Engagé</p>
                   <p class="mt-1 text-xl font-semibold">${engaged}%</p>
                   <div class="mt-2 h-1.5 w-full rounded-full bg-slate-800 overflow-hidden">
-                    <div class="h-full rounded-full bg-emerald-500" style="width:${engaged}%"></div>
+                    <div class="h-full rounded-full bg-fuchsia-500" style="width:${engaged}%"></div>
                   </div>
                 </div>
                 <div class="rounded-2xl border border-slate-800 bg-slate-950/60 px-3 py-3">
@@ -342,7 +342,7 @@
             <section class="mt-5">
               <div class="flex items-center justify-between mb-2">
                 <h3 class="text-sm font-medium">Dépenses</h3>
-                <button id="add-dep" class="inline-flex items-center rounded-full bg-emerald-500/10 px-3 py-1.5 text-[11px] font-medium text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/20 active:scale-[0.97] transition">+ Dépense</button>
+                <button id="add-dep" class="inline-flex items-center rounded-full bg-fuchsia-500/10 px-3 py-1.5 text-[11px] font-medium text-fuchsia-400 border border-fuchsia-500/40 hover:bg-fuchsia-500/20 active:scale-[0.97] transition">+ Dépense</button>
               </div>
               <div id="dep-list" class="space-y-1.5">${depList()}</div>
             </section>
@@ -364,7 +364,7 @@
                 <div class="text-[11px] text-slate-500">${c?esc(c.name):'Sans catégorie'} · ${d.spent_on?.slice(8,10)}/${d.spent_on?.slice(5,7)}</div>
               </div>
               <span class="text-[12px] font-medium">${fmt.format(d.amount)}</span>
-              <button class="ml-1 rounded-xl border border-slate-800 px-2 py-1 text-[11px] text-slate-400 hover:text-emerald-400 hover:border-emerald-500/50 act-edit">Éditer</button>
+              <button class="ml-1 rounded-xl border border-slate-800 px-2 py-1 text-[11px] text-slate-400 hover:text-fuchsia-400 hover:border-fuchsia-500/50 act-edit">Éditer</button>
               <button class="rounded-xl border border-slate-800 px-2 py-1 text-[11px] text-rose-400 hover:border-rose-500/70 act-del">Suppr.</button>
             </div>`;
           }).join('');
@@ -401,7 +401,7 @@
                 <label class="text-[11px] uppercase tracking-[0.16em] text-slate-500">Date</label>
                 <input id="d-date" type="date" class="mt-1 w-full rounded-xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm" value="${d?d.spent_on:new Date().toISOString().slice(0,10)}" />
               </div>
-              <button id="d-save" class="mt-2 w-full rounded-full bg-emerald-500 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-emerald-400 active:scale-[0.98] transition">${d?"Enregistrer":"Ajouter"}</button>
+              <button id="d-save" class="mt-2 w-full rounded-full bg-fuchsia-500 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-fuchsia-400 active:scale-[0.98] transition">${d?"Enregistrer":"Ajouter"}</button>
             </div>
           `);
           $("d-save").onclick = async () => {
@@ -422,7 +422,7 @@
         function renderRecurrents(){
           let body;
           if (!recurrents.length){
-            body = `<div class="text-[12px] text-slate-500 text-center py-6 border border-dashed border-slate-800 rounded-2xl">Aucun récurrent.<br/><button id="seed-rec" class="mt-3 rounded-full border border-slate-700 px-3 py-1.5 text-[11px] text-slate-300 hover:border-emerald-500/60 hover:text-emerald-400">Importer le modèle</button></div>`;
+            body = `<div class="text-[12px] text-slate-500 text-center py-6 border border-dashed border-slate-800 rounded-2xl">Aucun récurrent.<br/><button id="seed-rec" class="mt-3 rounded-full border border-slate-700 px-3 py-1.5 text-[11px] text-slate-300 hover:border-fuchsia-500/60 hover:text-fuchsia-400">Importer le modèle</button></div>`;
           } else {
             body = recurrents.map(r => {
               const ends = r.end_month ? `fin ${r.end_month.slice(5,7)}/${r.end_month.slice(0,4)}` : "sans fin";
@@ -432,8 +432,8 @@
                   <div class="text-[11px] text-slate-500">${r.day?`le ${r.day} · `:""}${ends}</div>
                 </div>
                 <span class="text-[12px] font-medium">${fmt.format(r.amount)}</span>
-                <button class="ml-1 rounded-xl border border-slate-700 px-2 py-1 text-[11px] text-slate-300 hover:text-emerald-400 hover:border-emerald-500/60 act-toggle">${r.active?"Pause":"Activer"}</button>
-                <button class="rounded-xl border border-slate-700 px-2 py-1 text-[11px] text-slate-300 hover:text-emerald-400 hover:border-emerald-500/60 act-edit">Éditer</button>
+                <button class="ml-1 rounded-xl border border-slate-700 px-2 py-1 text-[11px] text-slate-300 hover:text-fuchsia-400 hover:border-fuchsia-500/60 act-toggle">${r.active?"Pause":"Activer"}</button>
+                <button class="rounded-xl border border-slate-700 px-2 py-1 text-[11px] text-slate-300 hover:text-fuchsia-400 hover:border-fuchsia-500/60 act-edit">Éditer</button>
                 <button class="rounded-xl border border-slate-700 px-2 py-1 text-[11px] text-rose-400 hover:border-rose-500/70 act-del">Suppr.</button>
               </div>`;
             }).join('');
@@ -442,7 +442,7 @@
             <section class="space-y-4">
               <div class="flex items-center justify-between">
                 <h3 class="text-sm font-medium">Paiements récurrents</h3>
-                <button id="add-rec" class="inline-flex items-center rounded-full bg-emerald-500/10 px-3 py-1.5 text-[11px] font-medium text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/20 active:scale-[0.97] transition">+ Ajouter</button>
+                <button id="add-rec" class="inline-flex items-center rounded-full bg-fuchsia-500/10 px-3 py-1.5 text-[11px] font-medium text-fuchsia-400 border border-fuchsia-500/40 hover:bg-fuchsia-500/20 active:scale-[0.97] transition">+ Ajouter</button>
               </div>
               <div class="rounded-2xl border border-slate-800 bg-slate-950/60 px-3 py-2 text-[12px] flex items-center justify-between">
                 <span class="text-slate-400">Total actif ce mois (${recsForMonth().length})</span>
@@ -498,7 +498,7 @@
                   <input id="r-end" type="month" class="mt-1 w-full rounded-xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm" value="${r?ym(r.end_month):""}" />
                 </div>
               </div>
-              <button id="r-save" class="mt-2 w-full rounded-full bg-emerald-500 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-emerald-400 active:scale-[0.98] transition">${r?"Enregistrer":"Ajouter"}</button>
+              <button id="r-save" class="mt-2 w-full rounded-full bg-fuchsia-500 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-fuchsia-400 active:scale-[0.98] transition">${r?"Enregistrer":"Ajouter"}</button>
             </div>
           `);
           $("r-save").onclick = async () => {
@@ -521,14 +521,14 @@
             <div class="flex items-center gap-2 rounded-2xl border border-slate-800 bg-slate-950/60 px-3 py-2 text-[12px]" data-id="${c.id}">
               <span class="h-3 w-3 rounded-full" style="background:${c.color}"></span>
               <div class="flex-1 min-w-0 truncate">${esc(c.name)}</div>
-              <button class="rounded-xl border border-slate-700 px-2 py-1 text-[11px] text-slate-300 hover:text-emerald-400 hover:border-emerald-500/60 act-edit">Éditer</button>
+              <button class="rounded-xl border border-slate-700 px-2 py-1 text-[11px] text-slate-300 hover:text-fuchsia-400 hover:border-fuchsia-500/60 act-edit">Éditer</button>
               <button class="rounded-xl border border-slate-700 px-2 py-1 text-[11px] text-rose-400 hover:border-rose-500/70 act-del">Suppr.</button>
             </div>`).join("") : `<div class="text-[12px] text-slate-500 text-center py-4 border border-dashed border-slate-800 rounded-2xl">Aucune catégorie.</div>`;
           app.innerHTML = header(`
             <section class="space-y-3">
               <div class="flex items-center justify-between">
                 <h3 class="text-sm font-medium">Catégories</h3>
-                <button id="add-cat" class="inline-flex items-center rounded-full bg-emerald-500/10 px-3 py-1.5 text-[11px] font-medium text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/20 active:scale-[0.97] transition">+ Ajouter</button>
+                <button id="add-cat" class="inline-flex items-center rounded-full bg-fuchsia-500/10 px-3 py-1.5 text-[11px] font-medium text-fuchsia-400 border border-fuchsia-500/40 hover:bg-fuchsia-500/20 active:scale-[0.97] transition">+ Ajouter</button>
               </div>
               <div id="cat-list" class="space-y-1.5">${body}</div>
             </section>
@@ -560,7 +560,7 @@
                 <label class="text-[11px] uppercase tracking-[0.16em] text-slate-500">Couleur</label>
                 <div id="c-sw" class="mt-1 flex flex-wrap gap-2">${PALETTE.map(p=>`<button type="button" class="h-7 w-7 rounded-full border-2 ${p===color?"border-slate-50":"border-transparent"}" style="background:${p}" data-c="${p}"></button>`).join('')}</div>
               </div>
-              <button id="c-save" class="mt-2 w-full rounded-full bg-emerald-500 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-emerald-400 active:scale-[0.98] transition">${c?"Enregistrer":"Ajouter"}</button>
+              <button id="c-save" class="mt-2 w-full rounded-full bg-fuchsia-500 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-fuchsia-400 active:scale-[0.98] transition">${c?"Enregistrer":"Ajouter"}</button>
             </div>
           `);
           let sel = color;
@@ -599,8 +599,8 @@
                     <input id="rv-a" class="mt-1 w-full rounded-xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm" inputmode="decimal" value="${v.aides}" />
                   </div>
                   <div class="flex gap-2 mt-2">
-                    <button id="rv-save" class="flex-1 rounded-full bg-emerald-500 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-emerald-400 active:scale-[0.98] transition">Enregistrer pour ce mois</button>
-                    ${usingOverride?`<button id="rv-reset" class="rounded-full border border-slate-700 px-4 py-2 text-[11px] text-slate-300 hover:border-emerald-500/60 hover:text-emerald-400">Revenir au défaut</button>`:''}
+                    <button id="rv-save" class="flex-1 rounded-full bg-fuchsia-500 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-fuchsia-400 active:scale-[0.98] transition">Enregistrer pour ce mois</button>
+                    ${usingOverride?`<button id="rv-reset" class="rounded-full border border-slate-700 px-4 py-2 text-[11px] text-slate-300 hover:border-fuchsia-500/60 hover:text-fuchsia-400">Revenir au défaut</button>`:''}
                   </div>
                   <p class="mt-1 text-[11px] text-slate-500">${usingOverride?"Ce mois utilise une valeur personnalisée.":"Ce mois utilise les revenus par défaut."}</p>
                 </div>
@@ -621,7 +621,7 @@
                     <label class="text-[11px] uppercase tracking-[0.16em] text-slate-500">Aides</label>
                     <input id="dv-a" class="mt-1 w-full rounded-xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm" inputmode="decimal" value="${d.aides}" />
                   </div>
-                  <button id="dv-save" class="mt-2 w-full rounded-full border border-slate-700 px-4 py-2 text-[11px] text-slate-300 hover:border-emerald-500/60 hover:text-emerald-400">Mettre à jour le défaut</button>
+                  <button id="dv-save" class="mt-2 w-full rounded-full border border-slate-700 px-4 py-2 text-[11px] text-slate-300 hover:border-fuchsia-500/60 hover:text-fuchsia-400">Mettre à jour le défaut</button>
                 </div>
               </div>
             </section>
