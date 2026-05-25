@@ -193,9 +193,15 @@
   }
 
   async function showApp(){
+    // Masquage IMMÉDIAT du login et affichage des conteneurs vides
     $("auth").style.display = "none"; 
     $("app").style.display = "block"; 
     $("nav").style.display = "flex"; 
+    
+    // Affichage d'un petit message de chargement temporaire dans l'app
+    $("app").innerHTML = `<div class="empty">Chargement de vos données budgétaires...</div>`;
+    
+    // Chargement des données en tâche de fond
     await bootstrap();
     render();
   }
