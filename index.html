@@ -127,9 +127,8 @@
   // ║  API). La clé "anon" est PUBLIQUE par design : sans risque    ║
   // ║  tant que la RLS est active (elle l'est dans schema.sql).     ║
   // ╚════════════════════════════════════════════════════════════╝
-
-  const SUPABASE_URL = "VITE_SUPABASE_URL";
-  const SUPABASE_ANON_KEY = "VITE_SUPABASE_ANON_KEY";
+  const SUPABASE_URL = "https://xvuyqoprzogmfwhtffvw.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2dXlxb3Byem9nbWZ3aHRmZnZ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2ODg4NTMsImV4cCI6MjA5NTI2NDg1M30.Hv-V2wBAh_OPKAcz60jBkizRXvGxZaSRkv9hk6-8Vic";
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const $ = (id) => document.getElementById(id);
   const fmt = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" });
