@@ -138,6 +138,11 @@
         function monthKey(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-01`; }
         function shiftMonth(d, n){ return new Date(d.getFullYear(), d.getMonth()+n, 1); }
         const k = () => monthKey(cur);
+        const FOYER_DEFAULTS = { adultes: ["Ludovic", "Marie-Laure"], enfants: 3 };
+        function getFoyerConfig(){
+          try { return JSON.parse(localStorage.getItem("budget_foyer_config")) || FOYER_DEFAULTS; }
+          catch { return FOYER_DEFAULTS; }
+        }
 
         // ── Auth UI ─────────────────────────────
         let mode = "in";
@@ -349,10 +354,29 @@
               </div>
               <div id="dep-list" class="space-y-1.5">${depList()}</div>
             </section>
+
+            <section class="mt-5 pb-6">
+              <div class="rounded-2xl border border-dashed border-slate-800 bg-slate-950/40 px-4 py-4 flex items-start justify-between gap-3">
+                <div class="flex-1">
+                  <p class="text-[12px] font-medium text-slate-300">Analyser avec Claude</p>
+                  <p class="text-[11px] text-slate-500 mt-0.5">Copie un résumé et ouvre claude.ai — il suffit de coller.</p>
+                </div>
+                <div class="flex flex-col items-end gap-2">
+                  <button id="ouvrir-claude-btn" class="inline-flex items-center rounded-full bg-fuchsia-500/10 px-3 py-1.5 text-[11px] font-medium text-fuchsia-400 border border-fuchsia-500/40 hover:bg-fuchsia-500/20 active:scale-[0.97] transition whitespace-nowrap">
+                    Analyser avec Claude
+                  </button>
+                  <button id="foyer-config-btn" class="text-[10px] text-slate-500 hover:text-slate-300 transition">
+                    ⚙ Configurer le foyer
+                  </button>
+                </div>
+              </div>
+            </section>
           `);
           wireHeader();
           $("add-dep").onclick = () => depModal();
           wireDepList();
+          document.getElementById("ouvrir-claude-btn")?.addEventListener("click", ouvrirClaude);
+          document.getElementById("foyer-config-btn")?.addEventListener("click", foyerModal);
         }
 
 
@@ -381,6 +405,127 @@
               await sb.from("depenses").delete().eq("id", d.id); await loadMonth(); render();
             } else if (e.target.classList.contains("act-edit")) depModal(d);
           });
+        }
+
+        async function fetchHistorique(nbMonths){
+          const months = [];
+          for (let i = 1; i <= nbMonths; i++) months.push(monthKey(shiftMonth(cur, -i)));
+          const [{ data: deps }, { data: revs }] = await Promise.all([
+            sb.from("depenses").select("month, amount").in("month", months),
+            sb.from("revenu_months").select("month, ludovic, marie_laure, aides").in("month", months),
+          ]);
+          const recApprox = recTotal();
+          return months.map(m => {
+            const mDepTotal = (deps || []).filter(d => d.month === m).reduce((s, d) => s + Number(d.amount), 0);
+            const mRev = (revs || []).find(r => r.month === m);
+            const mInc = mRev
+              ? Number(mRev.ludovic) + Number(mRev.marie_laure) + Number(mRev.aides)
+              : income();
+            return {
+              mois: m.slice(0, 7),
+              revenus: Math.round(mInc),
+              recurrents: Math.round(recApprox),
+              depenses: Math.round(mDepTotal),
+              reste: Math.round(mInc - recApprox - mDepTotal),
+            };
+          });
+        }
+
+        async function buildSummaryText(){
+          const foyer = getFoyerConfig();
+          const hist = await fetchHistorique(2);
+          const inc = income(), rec = recTotal(), dep = depTotal(), rst = reste();
+          const engagePct = Math.round((rec + dep) / inc * 100);
+
+          const now = new Date();
+          const isCurMonth = cur.getFullYear() === now.getFullYear() && cur.getMonth() === now.getMonth();
+          const lastDay = new Date(cur.getFullYear(), cur.getMonth() + 1, 0).getDate();
+          const daysLeft = isCurMonth ? Math.max(1, lastDay - now.getDate() + 1) : lastDay;
+          const perDay = Math.round(rst / daysLeft);
+
+          const byCat = {};
+          depenses.forEach(d => {
+            const key = d.category_id || "∅";
+            byCat[key] = (byCat[key] || 0) + Number(d.amount);
+          });
+          const catLines = Object.entries(byCat)
+            .sort((a, b) => b[1] - a[1])
+            .map(([cid, amt]) => {
+              const c = categories.find(x => x.id === cid);
+              return `• ${c ? c.name : "Sans catégorie"} : ${Math.round(amt)}€`;
+            }).join("\n") || "(aucune dépense)";
+
+          const histLines = hist.map(h => {
+            const d = new Date(h.mois + "-15");
+            const label = d.toLocaleString("fr-FR", { month: "long", year: "numeric" });
+            return `• ${label} : dépenses ${h.depenses}€, reste ${h.reste}€`;
+          }).join("\n") || "(pas de données antérieures)";
+
+          const mLabel = cur.toLocaleString("fr-FR", { month: "long", year: "numeric" });
+          const adultes = foyer.adultes.join(", ");
+          const revD = revMonth || revDefault;
+
+          return `📊 Budget ${mLabel} — Foyer : ${adultes} + ${foyer.enfants} enfant${foyer.enfants > 1 ? "s" : ""}
+
+REVENUS : ${Math.round(inc)}€ (${foyer.adultes[0]} ${Math.round(Number(revD.ludovic))}€ · ${foyer.adultes[1]} ${Math.round(Number(revD.marie_laure))}€ · Aides ${Math.round(Number(revD.aides))}€)
+RÉCURRENTS : ${Math.round(rec)}€ (${Math.round(rec / inc * 100)}% des revenus)
+DÉPENSES CE MOIS : ${Math.round(dep)}€
+RESTE : ${Math.round(rst)}€ | Budget quotidien : ${perDay}€/jour | Engagement : ${engagePct}%
+
+Dépenses par catégorie :
+${catLines}
+
+Historique :
+${histLines}`;
+        }
+
+        async function ouvrirClaude(){
+          const btn = document.getElementById("ouvrir-claude-btn");
+          if (!btn || btn.disabled) return;
+          btn.disabled = true;
+          btn.textContent = "Génération…";
+          try {
+            const text = await buildSummaryText();
+            await navigator.clipboard.writeText(text);
+            window.open("https://claude.ai/new", "_blank");
+            btn.textContent = "✓ Collez dans l’onglet claude.ai";
+            setTimeout(() => { btn.textContent = "Analyser avec Claude"; btn.disabled = false; }, 3000);
+          } catch(e) {
+            btn.textContent = "Erreur — réessayer";
+            btn.disabled = false;
+          }
+        }
+
+        function foyerModal(){
+          const foyer = getFoyerConfig();
+          openModal(`
+            <h2 class="text-base font-semibold mb-3">Configuration du foyer</h2>
+            <div class="space-y-3">
+              <div>
+                <label class="text-[11px] uppercase tracking-[0.16em] text-slate-500">Prénom adulte 1</label>
+                <input id="foyer-a1" class="mt-1 w-full rounded-xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm" value="${esc(foyer.adultes[0] || "")}" />
+              </div>
+              <div>
+                <label class="text-[11px] uppercase tracking-[0.16em] text-slate-500">Prénom adulte 2</label>
+                <input id="foyer-a2" class="mt-1 w-full rounded-xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm" value="${esc(foyer.adultes[1] || "")}" />
+              </div>
+              <div>
+                <label class="text-[11px] uppercase tracking-[0.16em] text-slate-500">Nombre d’enfants</label>
+                <input id="foyer-enfants" type="number" min="0" max="10" class="mt-1 w-full rounded-xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm" value="${foyer.enfants}" />
+              </div>
+              <button id="foyer-save" class="mt-2 w-full rounded-full bg-fuchsia-500 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-fuchsia-400 active:scale-[0.98] transition">Enregistrer</button>
+            </div>
+          `);
+          document.getElementById("foyer-save").onclick = () => {
+            const a1 = document.getElementById("foyer-a1").value.trim();
+            const a2 = document.getElementById("foyer-a2").value.trim();
+            const enfants = parseInt(document.getElementById("foyer-enfants").value) || 0;
+            localStorage.setItem("budget_foyer_config", JSON.stringify({
+              adultes: [a1 || "Adulte 1", a2 || "Adulte 2"],
+              enfants,
+            }));
+            closeModal();
+          };
         }
 
         function depModal(d){
