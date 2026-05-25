@@ -7,7 +7,7 @@ import { initAuth, showApp, showAuth } from './auth.js';
 import { render } from './render.js';
 
 // Vérification de la configuration
-if (SUPABASE_URL.includes("VOTRE_SUPABASE")) {
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY || SUPABASE_URL.includes("VOTRE_SUPABASE")) {
   document.body.innerHTML = `<div class="min-h-screen flex items-center justify-center bg-bg text-slate-100"><div class="max-w-md mx-auto rounded-3xl border border-slate-800 bg-slate-950/80 px-5 py-6 shadow-2xl"><h1 class="text-lg font-semibold mb-3">Configuration requise</h1><p class="text-sm text-slate-400">Copie <code>config.example.js</code> en <code>config.js</code> et renseigne <code>SUPABASE_URL</code> et <code>SUPABASE_ANON_KEY</code>. Puis recharge.</p></div></div>`;
 } else {
   ctx.sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);

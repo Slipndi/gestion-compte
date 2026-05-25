@@ -27,8 +27,8 @@ jobs:
       - name: Injection des clés Supabase dans config.js
         run: |
           cp config.example.js config.js
-          sed -i "s|VOTRE_SUPABASE_URL|${{ secrets.SUPABASE_URL }}|" config.js
-          sed -i "s|VOTRE_SUPABASE_ANON_KEY|${{ secrets.SUPABASE_ANON_KEY }}|" config.js
+          sed -i "s|VOTRE_SUPABASE_URL|${{ secrets.VITE_SUPABASE_URL }}|" config.js
+          sed -i "s|VOTRE_SUPABASE_ANON_KEY|${{ secrets.VITE_SUPABASE_ANON_KEY }}|" config.js
 
       - name: Configuration de GitHub Pages
         uses: actions/configure-pages@v5
