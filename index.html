@@ -12,6 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 <style>
+  [hidden] { display: none !important; }
   :root{
     --paper:#ECE5D6; --card:#F8F4EA; --cardAlt:#F2ECDE; --ink:#211C15;
     --muted:#8C8475; --line:#D8CFBC; --accent:#C2522F; --accentSoft:#E9C7B8;
@@ -185,9 +186,16 @@
     if (s) showApp(); else showAuth();
   });
 
-  function showAuth(){ $("auth").hidden = false; $("app").hidden = true; $("nav").hidden = true; }
+  function showAuth(){ 
+    $("auth").style.display = "grid"; 
+    $("app").style.display = "none"; 
+    $("nav").style.display = "none"; 
+  }
+
   async function showApp(){
-    $("auth").hidden = true; $("app").hidden = false; $("nav").hidden = false;
+    $("auth").style.display = "none"; 
+    $("app").style.display = "block"; 
+    $("nav").style.display = "flex"; 
     await bootstrap();
     render();
   }
@@ -530,7 +538,6 @@
     document.body.innerHTML = `<div class="wrap"><div class="card" style="margin-top:40px"><b>Configuration requise</b><p class="muted" style="font-size:13px;margin-top:8px;line-height:1.5">Ouvre <code>index.html</code> et renseigne <code>SUPABASE_URL</code> et <code>SUPABASE_ANON_KEY</code> (Supabase → Settings → API). Puis recharge.</p></div></div>`;
     return;
   }
-  sb.auth.getSession().then(({ data }) => { session = data.session; session ? showApp() : showAuth(); });
   if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(()=>{}));
 })();
 </script>
